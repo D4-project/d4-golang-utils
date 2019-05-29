@@ -1,4 +1,4 @@
-module requirements.go
+module github.com/D4-project/d4-golang-utils
 
 go 1.12
 
