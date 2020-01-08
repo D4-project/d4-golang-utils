@@ -73,7 +73,7 @@ func validPort(port string) bool {
 }
 
 // ReadConfigFile takes two argument: folder and fileName.
-// It reads its content, trims\n, and return []byte
+// It reads its content, trims\n and \r, and return []byte
 // All errors are Fatal.
 func ReadConfigFile(folder string, fileName string) []byte {
 	f, err := os.OpenFile("./"+folder+"/"+fileName, os.O_RDWR|os.O_CREATE, 0666)
@@ -88,12 +88,11 @@ func ReadConfigFile(folder string, fileName string) []byte {
 			log.Fatal(err)
 		}
 	}
-	if count == 0 {
-		log.Fatal(fileName + " is empty.")
-	}
 	if err := f.Close(); err != nil {
 		log.Fatal(err)
 	}
-	// trim \n if present
-	return bytes.TrimSuffix(data[:count], []byte("\n"))
+
+    // trim \r and \n if present
+    r := bytes.TrimSuffix(data[:count], []byte("\n"))
+    return bytes.TrimSuffix(r, []byte("\r"))
 }
