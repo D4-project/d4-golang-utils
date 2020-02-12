@@ -32,7 +32,6 @@ func IsNet(host string) (bool, string) {
 		}
 		// trim brackets
 		if net.ParseIP(strings.Trim(host[:i+1], "[]")) != nil {
-			log.Fatal(fmt.Sprintf("Server IP: %s, Server Port: %s\n", host[:i+1], host[i+1:]))
 			return true, host
 		}
 	} else {
@@ -44,12 +43,14 @@ func IsNet(host string) (bool, string) {
 				return false, ""
 			}
 			if net.ParseIP(ss[0]) != nil {
-				log.Fatal(fmt.Sprintf("Server IP: %s, Server Port: %s\n", ss[0], ss[1]))
-				return true, host
-			} else if validDNS.MatchString(ss[0]) {
-				log.Fatal(fmt.Sprintf("DNS: %s, Server Port: %s\n", ss[0], ss[1]))
 				return true, host
 			}
+            if validDNS.MatchString(ss[0]) {
+				return true, host
+			} else {
+				log.Fatal(fmt.Sprintf("DNS/IP: %s, Server Port: %s\n", ss[0], ss[1]))
+				return false,  ""
+            }
 		}
 	}
 	return false, host
