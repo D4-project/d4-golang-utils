@@ -23,11 +23,11 @@ func IsNet(host string) (bool, string) {
 		// E.g., "[fe80::1]:80".
 		i := strings.LastIndex(host, "]")
 		if i < 0 {
-			log.Fatal("Unmatched [ in destination config")
+			log.Println("Unmatched [ in destination config")
 			return false, ""
 		}
 		if !validPort(host[i+1:]) {
-			log.Fatal("No valid port specified")
+			log.Println("No valid port specified")
 			return false, ""
 		}
 		// trim brackets
@@ -36,21 +36,27 @@ func IsNet(host string) (bool, string) {
 		}
 	} else {
 		// Ipv4 or DNS name
-		ss := strings.Split(string(host), ":")
+		ss := strings.Split(host, ":")
 		if len(ss) > 1 {
 			if !validPort(":" + ss[1]) {
-				log.Fatal("No valid port specified")
+				log.Println("No valid port specified")
 				return false, ""
 			}
+			// if not nil, its a valid IP adress
 			if net.ParseIP(ss[0]) != nil {
 				return true, host
 			}
-            if validDNS.MatchString(ss[0]) {
+			// if "localhost", its valid
+			if strings.Compare("localhost", ss[0]) == 0 {
+				return true, host
+			}
+			// check against the regex
+			if validDNS.MatchString(ss[0]) {
 				return true, host
 			} else {
-				log.Fatal(fmt.Sprintf("DNS/IP: %s, Server Port: %s\n", ss[0], ss[1]))
-				return false,  ""
-            }
+				log.Println(fmt.Sprintf("DNS/IP: %s, Server Port: %s", ss[0], ss[1]))
+				return false, ""
+			}
 		}
 	}
 	return false, host
@@ -93,7 +99,7 @@ func ReadConfigFile(folder string, fileName string) []byte {
 		log.Fatal(err)
 	}
 
-    // trim \r and \n if present
-    r := bytes.TrimSuffix(data[:count], []byte("\n"))
-    return bytes.TrimSuffix(r, []byte("\r"))
+	// trim \r and \n if present
+	r := bytes.TrimSuffix(data[:count], []byte("\n"))
+	return bytes.TrimSuffix(r, []byte("\r"))
 }
