@@ -3,7 +3,6 @@ package inputreader
 import (
 	"bytes"
 	"io"
-	"log"
 	"time"
 
 	"github.com/gomodule/redigo/redis"
@@ -24,21 +23,23 @@ type RedisLPOPReader struct {
 	buf []byte
 }
 
-// NewLPOPReader creates a new RedisLPOPScanner
-func NewLPOPReader(rc *redis.Conn, db int, queue string, rt int) *RedisLPOPReader {
+// NewLPOPReader creates a new RedisLPOPReader
+func NewLPOPReader(rc *redis.Conn, db int, queue string, rt int) (*RedisLPOPReader, error) {
 	rr := *rc
 
 	if _, err := rr.Do("SELECT", db); err != nil {
 		rr.Close()
-		log.Fatal(err)
+		return nil, err
 	}
 
-	return &RedisLPOPReader{
+	r := &RedisLPOPReader{
 		r:           rc,
 		d:           db,
 		q:           queue,
 		retryPeriod: time.Duration(rt) * time.Minute,
 	}
+
+	return r, nil
 }
 
 // Read LPOP the redis queue and use a bytes reader to copy
@@ -51,7 +52,6 @@ func (rl *RedisLPOPReader) Read(p []byte) (n int, err error) {
 	if err == redis.ErrNil {
 		return 0, io.EOF
 	} else if err != nil {
-		log.Println(err)
 		return 0, err
 	}
 	rreader := bytes.NewReader(buf)
