@@ -1,9 +1,7 @@
-package main
+package config
 
 import (
 	"testing"
-
-	config "github.com/D4-project/d4-golang-utils/config"
 )
 
 var testCases = []struct {
@@ -29,7 +27,7 @@ var testCases = []struct {
 func TestIsNet(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			b, _ := config.IsNet(tc.str)
+			b, _ := IsNet(tc.str)
 			if b != tc.expected {
 				t.Fail()
 			}
