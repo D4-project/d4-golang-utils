@@ -54,6 +54,7 @@ func (rl *RedisLPOPReader) Read(p []byte) (n int, err error) {
 	} else if err != nil {
 		return 0, err
 	}
+	buf = append(buf, "\n"...)
 	rreader := bytes.NewReader(buf)
 	n, err = rreader.Read(p)
 	return n, err
