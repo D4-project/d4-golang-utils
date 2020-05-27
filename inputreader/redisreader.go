@@ -2,10 +2,8 @@ package inputreader
 
 import (
 	"bytes"
-	"io"
-	"time"
-
 	"github.com/gomodule/redigo/redis"
+	"io"
 )
 
 // RedisLPOPReader is a abstraction of LPOP list
@@ -17,14 +15,12 @@ type RedisLPOPReader struct {
 	d int
 	// D4 Queue storing
 	q string
-	// Time in minute before retrying
-	retryPeriod time.Duration
 	// Current buffer
 	buf []byte
 }
 
 // NewLPOPReader creates a new RedisLPOPReader
-func NewLPOPReader(rc *redis.Conn, db int, queue string, rt int) (*RedisLPOPReader, error) {
+func NewLPOPReader(rc *redis.Conn, db int, queue string) (*RedisLPOPReader, error) {
 	rr := *rc
 
 	if _, err := rr.Do("SELECT", db); err != nil {
@@ -33,10 +29,9 @@ func NewLPOPReader(rc *redis.Conn, db int, queue string, rt int) (*RedisLPOPRead
 	}
 
 	r := &RedisLPOPReader{
-		r:           rc,
-		d:           db,
-		q:           queue,
-		retryPeriod: time.Duration(rt) * time.Minute,
+		r: rc,
+		d: db,
+		q: queue,
 	}
 
 	return r, nil
