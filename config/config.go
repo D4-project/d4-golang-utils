@@ -83,7 +83,7 @@ func validPort(port string) bool {
 // It reads its content, trims\n and \r, and return []byte
 // All errors are Fatal.
 func ReadConfigFile(folder string, fileName string) []byte {
-	f, err := os.OpenFile("./"+folder+"/"+fileName, os.O_RDWR|os.O_CREATE, 0666)
+	f, err := os.OpenFile(folder+"/"+fileName, os.O_RDWR|os.O_CREATE, 0666)
 	defer f.Close()
 	if err != nil {
 		log.Fatal(err)
