@@ -1,6 +1,7 @@
 package config
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"io"
@@ -80,6 +81,7 @@ func validPort(port string) bool {
 }
 
 // ReadConfigFile takes two argument: folder and fileName.
+// Create if not exist
 // It reads its content, trims\n and \r, and return []byte
 // All errors are Fatal.
 func ReadConfigFile(folder string, fileName string) []byte {
@@ -102,4 +104,26 @@ func ReadConfigFile(folder string, fileName string) []byte {
 	// trim \r and \n if present
 	r := bytes.TrimSuffix(data[:count], []byte("\n"))
 	return bytes.TrimSuffix(r, []byte("\r"))
+}
+
+// ReadConfigFileLines takes two argument: folder and fileName.
+// It reads its content line by line, trims\n and \r,
+// and return [][]byte
+// All errors are Fatal.
+func ReadConfigFileLines(folder string, fileName string) [][]byte {
+	res := [][]byte{}
+	f, err := os.Open(folder+"/"+fileName)
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer f.Close()
+    scanner := bufio.NewScanner(f)
+    for scanner.Scan() {
+        res = append(res, []byte(scanner.Text()))
+    }
+
+    if err := scanner.Err(); err != nil {
+        log.Fatal(err)
+    }
+    return res
 }
