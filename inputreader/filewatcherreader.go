@@ -21,19 +21,23 @@ type FileWatcherReader struct {
 	exit chan string
 	// Current buffer
 	buf []byte
+	// json
+	json bool
 }
 
 // NewFileWatcherReader creates a new FileWatcherReader
-func NewFileWatcherReader(f *os.File) (*FileWatcherReader, error) {
+// json specifies whether we now we handle json files
+func NewFileWatcherReader(f *os.File, j bool) (*FileWatcherReader, error) {
 	r := &FileWatcherReader{
 		folderfd: f,
 		eic: make(chan notify.EventInfo, 1),
+		json: j,
 	}
 	return r, nil
 }
 
-// Read  waits for InCloseWrite file event  uses a bytes reader to copy
-// the resulting file in p
+// Read  waits for InCloseWrite file event uses a bytes reader to copy
+// the resulting file encoded in b64 in p
 func (fw *FileWatcherReader) Read(p []byte) (n int, err error) {
 	if err := notify.Watch("./...", fw.eic, notify.InCloseWrite); err != nil {
 		log.Fatal(err)
@@ -49,16 +53,24 @@ func (fw *FileWatcherReader) Read(p []byte) (n int, err error) {
 				if err != nil {
 					log.Fatal(err)
 				}
-				// base64 stream encoder
-				b64buf := new(bytes.Buffer)
-				b64encoder := base64.NewEncoder(base64.StdEncoding, b64buf)
-				// Encode in Base64 to b64buf
-				b64encoder.Write(fw.buf)
-				// Close the encoder to flush partially written blocks
-				b64encoder.Close()
-				b64buf.WriteString("\n")
-				//rreader := bytes.NewReader(fw.buf)
-				n, err = b64buf.Read(p)
+				// if not json it could be anything so we encode it in b64
+				if !fw.json{
+					// base64 stream encoder
+					b64buf := new(bytes.Buffer)
+					b64encoder := base64.NewEncoder(base64.StdEncoding, b64buf)
+					// Encode in Base64 to b64buf
+					b64encoder.Write(fw.buf)
+					// Close the encoder to flush partially written blocks
+					b64encoder.Close()
+					b64buf.WriteString("\n")
+					//rreader := bytes.NewReader(fw.buf)
+					n, err = b64buf.Read(p)
+				}else{
+					fw.buf = append(fw.buf, "\n"...)
+					rreader := bytes.NewReader(fw.buf)
+					n, err = rreader.Read(p)
+					return n, err
+				}
 				return n, err
 			case <-fw.exit:
 				// Exiting
