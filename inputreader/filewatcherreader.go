@@ -33,20 +33,24 @@ func NewFileWatcherReader(f *os.File, j bool) (*FileWatcherReader, error) {
 		eic: make(chan notify.EventInfo, 1),
 		json: j,
 	}
+	// go routine holding the watcher
+	go func() {
+		if err := notify.Watch("./...", r.eic, notify.InCloseWrite); err != nil {
+			log.Fatal(err)
+		}
+		defer notify.Stop(r.eic)
+		<-r.exit
+	}()
 	return r, nil
 }
 
 // Read  waits for InCloseWrite file event uses a bytes reader to copy
 // the resulting file encoded in b64 in p
 func (fw *FileWatcherReader) Read(p []byte) (n int, err error) {
-	if err := notify.Watch("./...", fw.eic, notify.InCloseWrite); err != nil {
-		log.Fatal(err)
-	}
-	defer notify.Stop(fw.eic)
-
 	for{
 		select{
 			case ei := <-fw.eic:
+				log.Println("Got event:", ei)
 				// New File, let's read its content
 				var err error
 				fw.buf, err = ioutil.ReadFile(ei.Path())
