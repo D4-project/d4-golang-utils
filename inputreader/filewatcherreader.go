@@ -94,26 +94,27 @@ func (fw *FileWatcherReader) Read(p []byte) (n int, err error) {
 		// base64 stream encoder
 		b64buffer := new(bytes.Buffer)
 		b64encoder := base64.NewEncoder(base64.StdEncoding, b64buffer)
-		// Read the file using p's length to get he correct size automatically
-		buf := make([]byte, len(p))
-		n, err = fw.curfile.Read(buf)
+		// max buffer size is then 3072 = 4096/4*3
+		buf := make([]byte, 3072)
+		bytesread, err := fw.curfile.Read(buf)
 		// buf is the input
-		b64encoder.Write(buf)
+		b64encoder.Write(buf[:bytesread])
 		// Close the encoder to flush partially written blocks
 		b64encoder.Close()
+		log.Println(b64buffer)
 		if err == io.EOF {
 			fw.insertsep = true
 		}
 		// Copy from b64buffer to p
-		n, err = b64buffer.Read(p)
-		// I keep a len(p) buffer size as python knows how to handle the padding
+		n, err = b64buffer.Read(p[:len(b64buffer.Bytes())])
+		log.Println("len b64 buffer: ", len(b64buffer.Bytes()))
 	} else {
 		n, err = fw.curfile.Read(p)
 		if err == io.EOF {
 			fw.insertsep = true
 		}
 	}
-	//log.Println("nread: ", n)
+	log.Println("nread: ", n)
 	return n, err
 }
 
