@@ -83,7 +83,6 @@ func (fw *FileWatcherReader) Read(p []byte) (n int, err error) {
 		n, err = rreader.Read(p)
 		fw.watching = true
 		fw.insertsep = false
-		log.Println("Inserting file seperator ")
 		fw.curfile.Close()
 		return n, err
 	}
@@ -101,20 +100,17 @@ func (fw *FileWatcherReader) Read(p []byte) (n int, err error) {
 		b64encoder.Write(buf[:bytesread])
 		// Close the encoder to flush partially written blocks
 		b64encoder.Close()
-		log.Println(b64buffer)
 		if err == io.EOF {
 			fw.insertsep = true
 		}
 		// Copy from b64buffer to p
 		n, err = b64buffer.Read(p[:len(b64buffer.Bytes())])
-		log.Println("len b64 buffer: ", len(b64buffer.Bytes()))
 	} else {
 		n, err = fw.curfile.Read(p)
 		if err == io.EOF {
 			fw.insertsep = true
 		}
 	}
-	log.Println("nread: ", n)
 	return n, err
 }
 
