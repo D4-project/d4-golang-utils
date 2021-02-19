@@ -3,6 +3,7 @@ package inputreader
 import (
 	"bytes"
 	"encoding/base64"
+	"fmt"
 	"github.com/rjeczalik/notify"
 	"io"
 	"log"
@@ -13,7 +14,7 @@ import (
 // and behaves like a reader
 type FileWatcherReader struct {
 	// Folder to watch
-	folderfd *os.File
+	folderstr string
 	// Notify Channel
 	eic chan notify.EventInfo
 	// TearDown channel
@@ -30,9 +31,9 @@ type FileWatcherReader struct {
 
 // NewFileWatcherReader creates a new FileWatcherReader
 // json specifies whether we now we handle json files
-func NewFileWatcherReader(f *os.File, j bool) (*FileWatcherReader, error) {
+func NewFileWatcherReader(f string, j bool) (*FileWatcherReader, error) {
 	r := &FileWatcherReader{
-		folderfd: f,
+		folderstr: f,
 		eic:      make(chan notify.EventInfo, 4096),
 		json:     j,
 		watching: true,
@@ -40,7 +41,7 @@ func NewFileWatcherReader(f *os.File, j bool) (*FileWatcherReader, error) {
 	}
 	// go routine holding the watcher
 	go func() {
-		if err := notify.Watch("./...", r.eic, notify.InCloseWrite); err != nil {
+		if err := notify.Watch(fmt.Sprintf("%s/...", r.folderstr ), r.eic, notify.InCloseWrite); err != nil {
 			log.Fatal(err)
 		}
 		defer notify.Stop(r.eic)
