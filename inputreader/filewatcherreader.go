@@ -5,9 +5,11 @@ import (
 	"encoding/base64"
 	"fmt"
 	"github.com/rjeczalik/notify"
+	"github.com/robfig/cron/v3"
 	"io"
 	"log"
 	"os"
+	"time"
 )
 
 // FileWatcherReader is an abstraction of a folder watcher
@@ -19,6 +21,8 @@ type FileWatcherReader struct {
 	eic chan notify.EventInfo
 	// TearDown channel
 	exit chan string
+	// Chan used to restart the watching channel on a new folder
+	dailyswitch chan string
 	// Current buffer
 	json bool
 	// Current file
@@ -31,23 +35,47 @@ type FileWatcherReader struct {
 
 // NewFileWatcherReader creates a new FileWatcherReader
 // json specifies whether we now we handle json files
-func NewFileWatcherReader(f string, j bool) (*FileWatcherReader, error) {
+func NewFileWatcherReader(f string, j bool, daily bool) (*FileWatcherReader, error) {
 	r := &FileWatcherReader{
 		folderstr: f,
-		eic:      make(chan notify.EventInfo, 4096),
-		json:     j,
-		watching: true,
+		eic:       make(chan notify.EventInfo, 4096),
+		json:      j,
+		watching:  true,
 		insertsep: false,
 	}
 	// go routine holding the watcher
-	go func() {
-		if err := notify.Watch(fmt.Sprintf("%s/...", r.folderstr ), r.eic, notify.InCloseWrite); err != nil {
+	go setUpWatcher(r, daily)
+
+	// cron task to add daily folder to watch
+	if daily {
+		c := cron.New()
+		c.AddFunc("@midnight", func() {
+		//c.AddFunc("@every 1m", func() {
+			r.dailyswitch <- "switch"
+		})
+		c.Start()
+	}
+	return r, nil
+}
+
+// setUpWatcher holds the watcher
+func setUpWatcher(r *FileWatcherReader, daily bool) {
+	if daily {
+		dt := time.Now()
+		//Format YYYYMMDD
+		// TODO make it customizable
+		currentFolder := dt.Format("20060102")
+		log.Println(fmt.Sprintf("Watching : %s/%s/...", r.folderstr, currentFolder))
+		if err := notify.Watch(fmt.Sprintf("%s/%s/...", r.folderstr, currentFolder), r.eic, notify.InCloseWrite); err != nil {
 			log.Fatal(err)
 		}
-		defer notify.Stop(r.eic)
-		<-r.exit
-	}()
-	return r, nil
+	} else {
+		if err := notify.Watch(fmt.Sprintf("%s/...", r.folderstr), r.eic, notify.InCloseWrite); err != nil {
+			log.Fatal(err)
+		}
+	}
+	defer notify.Stop(r.eic)
+	<-r.dailyswitch
 }
 
 // Read  waits for InCloseWrite file event uses a bytes reader to copy
@@ -77,7 +105,7 @@ func (fw *FileWatcherReader) Read(p []byte) (n int, err error) {
 	}
 
 	// Inserting separator
-	if fw.insertsep{
+	if fw.insertsep {
 		var buf []byte
 		buf = append(buf, "\n"...)
 		rreader := bytes.NewReader(buf)
